@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:latest
@@ -8,8 +6,6 @@ services:
       POSTGRES_DB: webhall_db
       POSTGRES_USER: webhall_user
       POSTGRES_PASSWORD: webhall_password
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -21,11 +17,12 @@ services:
   app:
     build: .
     container_name: webhall-app
-    command: python src/manage.py runserver 0.0.0.0:8000
+    working_dir: /usr/src/app/src
+    command: poetry run python manage.py runserver 0.0.0.0:8000
     volumes:
-      - .:/app
+      - ./src:/usr/src/app/src
     ports:
-      - "8000:8000"
+      - "80:8000"
     environment:
       DEBUG: "True"
       SECRET_KEY: "django-insecure-docker-dev-key"
