@@ -1,41 +1,28 @@
 services:
-  db:
-    image: postgres:latest
-    container_name: webhall-postgres
-    env_file:
-      - .env
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    ports:
-      - "${POSTGRES_PORT:-5432}:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   app:
-    build: .
-    container_name: webhall-app
-    working_dir: /app
-    command: poetry run python src/manage.py runserver 0.0.0.0:8000
+    build:
+      dockerfile: ./devops/containers/app/Dockerfile
+    # tty: true
+    # entrypoint: ''
+    # command: nu
     volumes:
-      - .:/app
+      - ./pyproject.toml:/usr/src/app/pyproject.toml:Z
+      - ./poetry.lock:/usr/src/app/poetry.lock:Z
+      - ./src:/usr/src/app/src
     ports:
       - "${APP_PORT:-8000}:8000"
     env_file:
       - .env
-    environment:
-      DEBUG: ${DEBUG}
-      SECRET_KEY: ${SECRET_KEY}
-      DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}"
     depends_on:
       db:
         condition: service_healthy
-
-volumes:
-  postgres_data:
+  db:
+    image: postgres:18-alpine
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
